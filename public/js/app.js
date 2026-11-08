@@ -9,7 +9,8 @@ const P = await (await fetch(DATA + "params.json")).json();
 const LW = P.logical[0], LH = P.logical[1];
 const canvas = document.getElementById("view");
 const overlay = document.getElementById("over");
-const R = await createRenderer(canvas, P, DATA);
+const frameExact = MODE === "capture" && !qs.has("portrait");
+const R = await createRenderer(canvas, P, DATA, { edge: frameExact ? 0 : 16 });
 const rnd = mulberry32(P.dots.seed);
 const RNG = Array.from({ length: 8192 }, () => [rnd(), rnd(), rnd()]);
 const pointerImg = MODE === "live" ? null : await createImageBitmap(await (await fetch(DATA + "pointer.png")).blob());
@@ -24,16 +25,8 @@ function layout() {
     c.style.width = cssW + "px";
     c.style.height = cssH + "px";
   }
-  const portrait = cssH > cssW * 1.05 && (MODE !== "capture" || qs.has("portrait"));
-  if (!portrait) {
-    const s = MODE === "capture" ? Math.min(W / LW, H / LH) : Math.max(W / LW, H / LH);
-    view = { scale: s, off: [(LW - W / s) / 2, (LH - H / s) / 2], dpr };
-  } else {
-    const focusW = 470;
-    const s = W / focusW;
-    const T = P.geom.track;
-    view = { scale: s, off: [T.cx - W / s / 2, T.cy - H / s / 2], dpr };
-  }
+  const s = frameExact ? Math.min(W / LW, H / LH) : Math.min(W / LW, H / LH, dpr);
+  view = { scale: s, off: [(LW - W / s) / 2, (LH - H / s) / 2], dpr };
   placeA11y();
 }
 const toLogical = (cx, cy) => {
